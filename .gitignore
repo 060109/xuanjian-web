@@ -59,3 +59,6 @@ server.log
 # cloudflare local
 default.toml
 .wrangler/
+
+# opennext build output
+.open-next/
