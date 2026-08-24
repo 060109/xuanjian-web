@@ -1,0 +1,11 @@
+{
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 8000069,
+      "message": "You cannot update the `source` object in a Direct Uploads project."
+    }
+  ],
+  "messages": []
+}
