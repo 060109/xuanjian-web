@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "xuanjian-web",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": ".open-next/assets",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "xuanjian-db",
+      "database_id": "faea3005-e416-46c1-9308-6f25836784c9"
+    }
+  ]
+}

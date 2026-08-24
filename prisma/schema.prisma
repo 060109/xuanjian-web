@@ -1,0 +1,68 @@
+// 玄鉴 AI · Prisma Schema
+// 传统术数知识库 + 计算记录 + AI对话
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 典籍库 —— 上传的传统术数文档
+model Document {
+  id        String   @id @default(cuid())
+  title     String
+  fileName  String
+  fileType  String // pdf / txt / docx / md / image
+  content   String  @default("") // 解析后的纯文本
+  summary   String? // AI 生成的摘要
+  category  String? // 滴天髓 / 三命通会 / 周易 / 梅花易数 / 奇门遁甲 / 其他
+  keywords  String? @default("") // 逗号分隔关键词
+  chunks    String? @default("[]") // JSON 切片数组
+  size      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
+
+// 计算记录 —— 八字/六爻/奇门等
+model Calculation {
+  id        String   @id @default(cuid())
+  type      String   // bazi / liuyao / qimen / tarot / name
+  title     String
+  input     String   @default("{}") // JSON 输入参数
+  result    String   @default("{}") // JSON 计算结果
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+// AI 对话历史
+model ChatMessage {
+  id        String   @id @default(cuid())
+  role      String   // user / assistant
+  content   String
+  context   String?  @default("") // 关联的算法上下文
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// 学习档案 —— 用户关注的人物/命盘
+model Profile {
+  id        String   @id @default(cuid())
+  name      String
+  gender    String?  // male / female
+  birthDate String?
+  birthTime String?
+  birthPlace String?
+  bazi      String?  @default("{}") // JSON 八字
+  tags      String?  @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

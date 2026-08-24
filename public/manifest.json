@@ -1,0 +1,40 @@
+{
+  "name": "玄鉴 AI · 东方术数研究空间",
+  "short_name": "玄鉴AI",
+  "description": "东方术数研究空间：八字、六爻、奇门、姓名、塔罗 + 典籍库 RAG + AI 推演。",
+  "start_url": ".",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "background_color": "#0b0910",
+  "theme_color": "#c9a96a",
+  "orientation": "portrait",
+  "lang": "zh-CN",
+  "categories": ["education", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

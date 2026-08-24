@@ -1,0 +1,284 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============ 玄鉴 AI · 东方术数主题 ============ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-noto-sans);
+  --font-serif: var(--font-noto-serif);
+  --font-brush: var(--font-mashan);
+  --font-mono: var(--font-geist-mono);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* 玄鉴专属色板 */
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-dim: var(--gold-dim);
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-cinnabar: var(--cinnabar);
+  --color-jade: var(--jade);
+  --color-cream: var(--cream);
+  --color-purple-deep: var(--purple-deep);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* 玄鉴专属色板（亮色保留兼容） */
+  --gold: #c9a96a;
+  --gold-soft: #d9c08a;
+  --gold-dim: #8a7544;
+  --ink: #14101a;
+  --ink-deep: #07060a;
+  --cinnabar: #9b3a3a;
+  --jade: #3a6b6b;
+  --cream: #e8dcc4;
+  --purple-deep: #1a1030;
+
+  --background: #07060a;
+  --foreground: #e8dcc4;
+  --card: rgba(20, 14, 28, 0.72);
+  --card-foreground: #e8dcc4;
+  --popover: #14101a;
+  --popover-foreground: #e8dcc4;
+  --primary: #c9a96a;
+  --primary-foreground: #07060a;
+  --secondary: #1a1030;
+  --secondary-foreground: #e8dcc4;
+  --muted: #1a1422;
+  --muted-foreground: #9a8d72;
+  --accent: #c9a96a;
+  --accent-foreground: #07060a;
+  --destructive: #9b3a3a;
+  --border: rgba(201, 169, 106, 0.18);
+  --input: rgba(201, 169, 106, 0.22);
+  --ring: #c9a96a;
+  --chart-1: #c9a96a;
+  --chart-2: #9b3a3a;
+  --chart-3: #3a6b6b;
+  --chart-4: #6b4a8a;
+  --chart-5: #d9c08a;
+  --sidebar: #0c0910;
+  --sidebar-foreground: #e8dcc4;
+  --sidebar-primary: #c9a96a;
+  --sidebar-primary-foreground: #07060a;
+  --sidebar-accent: #1a1030;
+  --sidebar-accent-foreground: #e8dcc4;
+  --sidebar-border: rgba(201, 169, 106, 0.18);
+  --sidebar-ring: #c9a96a;
+}
+
+.dark {
+  --background: #07060a;
+  --foreground: #e8dcc4;
+  --card: rgba(20, 14, 28, 0.72);
+  --card-foreground: #e8dcc4;
+  --popover: #14101a;
+  --popover-foreground: #e8dcc4;
+  --primary: #c9a96a;
+  --primary-foreground: #07060a;
+  --secondary: #1a1030;
+  --secondary-foreground: #e8dcc4;
+  --muted: #1a1422;
+  --muted-foreground: #9a8d72;
+  --accent: #c9a96a;
+  --accent-foreground: #07060a;
+  --destructive: #9b3a3a;
+  --border: rgba(201, 169, 106, 0.18);
+  --input: rgba(201, 169, 106, 0.22);
+  --ring: #c9a96a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html, body {
+    @apply bg-background text-foreground;
+  }
+  body {
+    background-color: #07060a;
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(26, 16, 48, 0.55), transparent 55%),
+      radial-gradient(ellipse at 85% 90%, rgba(60, 30, 30, 0.35), transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(201, 169, 106, 0.04), transparent 70%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+/* ============ 玄鉴 · 滚动条 ============ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(20, 14, 28, 0.4);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8a7544, #c9a96a);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #c9a96a, #d9c08a);
+}
+
+/* ============ 玄鉴 · 通用工具类 ============ */
+.xj-glass {
+  background: linear-gradient(135deg, rgba(26, 16, 48, 0.55), rgba(12, 9, 16, 0.65));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(201, 169, 106, 0.22);
+}
+.xj-glass-strong {
+  background: linear-gradient(135deg, rgba(26, 16, 48, 0.78), rgba(12, 9, 16, 0.85));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(201, 169, 106, 0.3);
+}
+.xj-gold-text {
+  background: linear-gradient(135deg, #d9c08a 0%, #c9a96a 45%, #8a7544 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.xj-gold-border {
+  border: 1px solid rgba(201, 169, 106, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(201, 169, 106, 0.08) inset,
+    0 0 24px rgba(201, 169, 106, 0.08);
+}
+.xj-glow {
+  box-shadow:
+    0 0 20px rgba(201, 169, 106, 0.25),
+    0 0 60px rgba(201, 169, 106, 0.12);
+}
+.xj-panel {
+  background:
+    linear-gradient(135deg, rgba(26, 16, 48, 0.6), rgba(12, 9, 16, 0.7));
+  border: 1px solid rgba(201, 169, 106, 0.2);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* 八卦分隔线 */
+.xj-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 106, 0.5), transparent);
+}
+
+/* 暗角 */
+.xj-vignette::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+  z-index: 1;
+}
+
+/* ============ 动画 ============ */
+@keyframes xj-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+@keyframes xj-spin-reverse {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes xj-pulse-glow {
+  0%, 100% { opacity: 0.5; filter: blur(8px); }
+  50% { opacity: 0.9; filter: blur(14px); }
+}
+@keyframes xj-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes xj-twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+@keyframes xj-fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes xj-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes xj-breathe {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(1.06); }
+}
+
+.xj-anim-spin-slow { animation: xj-spin-slow 60s linear infinite; }
+.xj-anim-spin-rev { animation: xj-spin-reverse 90s linear infinite; }
+.xj-anim-pulse-glow { animation: xj-pulse-glow 4s ease-in-out infinite; }
+.xj-anim-float { animation: xj-float 5s ease-in-out infinite; }
+.xj-anim-fade-in { animation: xj-fade-in 0.5s ease-out both; }
+.xj-anim-twinkle { animation: xj-twinkle 3s ease-in-out infinite; }
+
+/* shadcn 输入框暗色适配 */
+input, textarea, select {
+  color-scheme: dark;
+}
+
+/* 卡片聚焦时其他变暗 */
+.xj-focus-dim > * {
+  transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
+}
+.xj-focus-dim.xj-has-focus > :not(.xj-focused) {
+  opacity: 0.42;
+  filter: saturate(0.7);
+}
+
+/* 玄鉴 · 首页卡片：彻底去除浏览器默认焦点虚线 */
+button:focus,
+button:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+button::-moz-focus-inner {
+  border: 0 !important;
+}
+
