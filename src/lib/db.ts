@@ -59,6 +59,20 @@ function createClient(): PrismaClient {
   return new PrismaClient()
 }
 
-export const db = globalForPrisma.prisma ?? createClient()
+/** 惰性获取客户端（避免在模块加载时初始化 Prisma，防止静态页面/worker 启动崩溃） */
+let lazyClient: PrismaClient | null = null
+function getClient(): PrismaClient {
+  if (!lazyClient) {
+    lazyClient = globalForPrisma.prisma ?? createClient()
+    if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = lazyClient
+  }
+  return lazyClient
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+/** 惰性代理：首次访问 db.xxx 时才真正初始化 PrismaClient */
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getClient()
+    return (client as unknown as Record<string | symbol, unknown>)[prop]
+  },
+})
