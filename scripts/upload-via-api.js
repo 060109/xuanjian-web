@@ -79,29 +79,29 @@ async function main() {
   }
   console.log('✅ 所有 blob 已上传')
 
-  // 4. 构建目录树（自底向上）
-  const dirs = new Set(entries.map((e) => e.name.split('/').slice(0, -1).join('/')).filter(Boolean))
-  const treeCache = new Map()
-  async function buildTree(prefix) {
-    const children = entries.filter((e) => {
-      const parts = e.name.split('/')
-      const parent = parts.slice(0, -1).join('/')
-      return parent === prefix && parts.length === (prefix ? prefix.split('/').length + 1 : 1)
-    })
+  // 4. 构建目录树（基于路径分组，修复 git ls-tree -r 不输出 tree 条目导致目录丢失的问题）
+  const pathMap = new Map(files.map((f) => [f.name, f.sha]))
+  async function buildTreeFor(prefix) {
     const items = []
-    for (const c of children) {
-      if (c.type === 'tree') {
-        const sub = await buildTree(c.name)
-        items.push({ path: c.name.split('/').pop(), mode: '040000', type: 'tree', sha: sub })
+    const subDirs = new Set()
+    for (const [path, sha] of pathMap) {
+      if (prefix && !path.startsWith(prefix + '/')) continue
+      const rest = prefix ? path.slice(prefix.length + 1) : path
+      if (!rest) continue
+      const parts = rest.split('/')
+      if (parts.length === 1) {
+        items.push({ path: parts[0], mode: '100644', type: 'blob', sha: shaMap.get(sha) })
       } else {
-        items.push({ path: c.name.split('/').pop(), mode: '100644', type: 'blob', sha: shaMap.get(c.sha) })
+        subDirs.add(parts[0])
       }
     }
-    if (!prefix) return items
-    const { sha } = await api('POST', '/git/trees', { tree: items })
-    return sha
+    for (const dir of subDirs) {
+      const sub = await buildTreeFor(prefix ? `${prefix}/${dir}` : dir)
+      items.push({ path: dir, mode: '040000', type: 'tree', sha: sub })
+    }
+    return prefix ? (await api('POST', '/git/trees', { tree: items })).sha : items
   }
-  const rootItems = await buildTree('')
+  const rootItems = await buildTreeFor('')
   const { sha: treeSha } = await api('POST', '/git/trees', { tree: rootItems })
   console.log('✅ 目录树已构建:', treeSha)
 

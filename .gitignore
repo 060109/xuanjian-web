@@ -63,3 +63,4 @@ default.toml
 # opennext build output
 .open-next/
 package-lock.json
+screenshots/
