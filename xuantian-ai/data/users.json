@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "accounts": [
+    {
+      "username": "kurbanj",
+      "password": "060109",
+      "role": "admin",
+      "displayName": "玄天掌印",
+      "createdAt": "2026-08-31T00:00:00.000Z"
+    },
+    {
+      "username": "guest",
+      "password": "xtai@2026",
+      "role": "user",
+      "displayName": "玄境访客",
+      "createdAt": "2026-08-31T00:00:00.000Z"
+    }
+  ]
+}

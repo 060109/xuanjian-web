@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>梅花易数 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">卦</span>
+    <h2>梅花易数</h2>
+    <div class="sub">数字起卦 · 先天八卦 · 体用生克</div>
+    <div class="row c3">
+      <div class="field"><label>数字一（上卦）</label><input id="n1" type="number" value="3"><span class="bar"></span></div>
+      <div class="field"><label>数字二（下卦）</label><input id="n2" type="number" value="5"><span class="bar"></span></div>
+      <div class="field"><label>数字三（动爻）</label><input id="n3" type="number" value="7"><span class="bar"></span></div>
+    </div>
+    <div class="field"><label>所问之事</label><input id="question" placeholder="默念所问，随口报数"><span class="bar"></span></div>
+    <button class="btn block" id="calcBtn">起卦推演</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">象</span>
+    <h2>卦象</h2>
+    <div class="sub" id="r-sub"></div>
+    <div class="grid-cards" id="guas" style="grid-template-columns:repeat(4,1fr);"></div>
+    <div class="verdict" id="r-verdict"></div>
+    <details><summary>起卦数据</summary><pre class="raw" id="r-json"></pre></details>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 体用详解</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'meihua.html' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+
+  function drawYao(lines) {
+    return lines.map(v => `<span style="letter-spacing:3px;font-family:var(--font-mono);color:var(--gold-bright);">${v ? '━━━━━' : '━━　━━'}</span>`).reverse().join('<br>');
+  }
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    try {
+      const r = Engine.run('meihua', { n1: +document.getElementById('n1').value, n2: +document.getElementById('n2').value, n3: +document.getElementById('n3').value });
+      ctx = r.aiContext;
+      document.getElementById('r-sub').textContent = `${document.getElementById('n1').value}、${document.getElementById('n2').value}、${document.getElementById('n3').value} 起卦 · 动爻第 ${r.data.dong} 爻`;
+      document.getElementById('guas').innerHTML = `
+        <div class="mini-card"><div class="k">上卦</div><div class="v">${r.data.up}</div><div class="d">${r.data.up === '乾' || r.data.up === '兑' ? '金' : r.data.up === '离' ? '火' : r.data.up === '震' || r.data.up === '巽' ? '木' : r.data.up === '坎' ? '水' : '土'}</div></div>
+        <div class="mini-card"><div class="k">下卦</div><div class="v">${r.data.down}</div><div class="d">${r.data.down === '乾' || r.data.down === '兑' ? '金' : r.data.down === '离' ? '火' : r.data.down === '震' || r.data.down === '巽' ? '木' : r.data.down === '坎' ? '水' : '土'}</div></div>
+        <div class="mini-card"><div class="k">体卦</div><div class="v">${r.data.ti}</div><div class="d">${r.data.tiWx}</div></div>
+        <div class="mini-card"><div class="k">用卦</div><div class="v">${r.data.yong}</div><div class="d">${r.data.yongWx}</div></div>`;
+      document.getElementById('r-verdict').innerHTML = `<b>${r.data.guanxi}。</b>${XT.esc(r.text.split('\n').pop())}`;
+      document.getElementById('r-json').textContent = JSON.stringify(r.data, null, 2);
+      XT.show(document.getElementById('result'), true);
+      XT.show(document.getElementById('aiPanel'), true);
+      Memory.record('meihua', { n1: +document.getElementById('n1').value, n2: +document.getElementById('n2').value, n3: +document.getElementById('n3').value });
+      XT.bump('calcs');
+      XT.saveHistory({ module: 'meihua', title: '梅花易数 ' + document.getElementById('n1').value + '·' + document.getElementById('n2').value + '·' + document.getElementById('n3').value, data: r.data });
+    } catch (e) { XT.msg(errBox, '起卦出错：' + e.message, 'err'); }
+  });
+
+  document.getElementById('aiBtn').addEventListener('click', async () => {
+    const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
+    if (!ctx) { XT.msg(box, '请先起卦', 'err'); return; }
+    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    XT.msg(box, '玄天感应中…（检索典籍 + 融合推演）', 'ok');
+    const btn = document.getElementById('aiBtn'); btn.disabled = true;
+    try {
+      const q = document.getElementById('question').value.trim() || '请解此卦';
+      const reply = await AIEngine.analyze({ query: q, algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display = '';
+      out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.hideMsg(box);
+    } catch (e) { XT.msg(box, e.message, 'err'); }
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>

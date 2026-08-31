@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>控制台 · 玄天智算</title>
+<meta name="description" content="玄天智算 · 未来科技控制台">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">台</span>
+    <h2>玄天控制台</h2>
+    <div class="sub">系统状态 · 全局总览 · 玄学功能矩阵</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num" id="stUsers">—</div><div class="lab">用户数</div></div>
+      <div class="stat-card"><div class="num" id="stDocs">—</div><div class="lab">典籍数</div></div>
+      <div class="stat-card on"><div class="num" id="stCalcs">—</div><div class="lab">推演次数</div></div>
+      <div class="stat-card on"><div class="num" id="stAi">—</div><div class="lab">AI 调用</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="status-row"><span class="light on"></span> AI 模型 <b id="aiModelName" style="margin-left:6px;color:var(--gold-bright);">未配置</b></div>
+    <div class="status-row"><span class="light" id="kbLight"></span> 知识库引擎 <span class="muted" id="kbState">加载中…</span></div>
+    <div class="status-row"><span class="light on"></span> 玄学算法引擎 v1.0 <span class="muted">八字 / 塔罗 / 六爻 / 梅花 / 奇门 / 风水 / 姓名</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>玄学功能矩阵</h2>
+    <div class="sub">十二大模块 · 算法 + 典籍 + AI 三合一体</div>
+    <div class="func-grid" id="funcGrid"></div>
+  </div>
+
+  <div class="panel result" id="userPanel" style="display:none;">
+    <h2>用户管理（管理员）</h2>
+    <div class="sub">新增 / 移除系统账号</div>
+    <div class="row c3">
+      <div class="field"><label>用户名</label><input id="nuName"><span class="bar"></span></div>
+      <div class="field"><label>密码</label><input id="nuPass" type="password"><span class="bar"></span></div>
+      <div class="field"><label>角色</label><select id="nuRole"><option value="user">普通用户</option><option value="admin">管理员</option></select><span class="bar"></span></div>
+    </div>
+    <button class="btn" id="addUserBtn">新增用户</button>
+    <div class="msg" id="uMsg"></div>
+    <div id="userList" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'dashboard.html' });
+  const session = XT.session() || {};
+
+  /* 状态刷新 */
+  async function refresh() {
+    const usage = XT.usage();
+    document.getElementById('stUsers').textContent = (await XT.listUsers()).length;
+    document.getElementById('stDocs').textContent = (await Knowledge.loadAll()).length;
+    document.getElementById('stCalcs').textContent = usage.calcs || 0;
+    document.getElementById('stAi').textContent = usage.ai || 0;
+    const cfg = AIEngine.getCfg();
+    document.getElementById('aiModelName').textContent = cfg.key ? `${cfg.providerName} · ${cfg.model}` : '未配置（前往设置）';
+    const kb = await Knowledge.loadAll();
+    document.getElementById('kbLight').className = 'light ' + (kb.length ? 'on' : 'off');
+    document.getElementById('kbState').textContent = kb.length + ' 部典籍就绪';
+  }
+
+  /* 功能矩阵 */
+  const grid = document.getElementById('funcGrid');
+  grid.innerHTML = XTApp.MODULES.map(m =>
+    `<a href="${m.id}.html"><span class="glyph">${m.glyph}</span><span class="nm">${m.name}</span></a>`).join('');
+
+  /* 玄天记忆 */
+  const memBox = document.createElement('div');
+  memBox.className = 'panel';
+  memBox.innerHTML = '<span class="corner">忆</span><h2>玄天记忆 · 用户画像</h2><div class="sub">系统自主学习你的偏好与历史，自动带入推演与 AI 解读</div><div id="memBody"></div>';
+  document.querySelector('.panel:nth-of-type(2)').after(memBox);
+  function renderMem() {
+    const p = Memory.get();
+    const html = [];
+    const facts = Object.entries(p.facts || {});
+    if (facts.length) html.push('<div class="status-row"><span class="light on"></span> 已记住：' + facts.map(([k, v]) => ({"birth":"生辰","gender":"性别","name":"姓名","shengxiao":"生肖","direction":"宅向","topic":"关注"}[k] || k) + '「' + XT.esc(v) + '」').join(' · ') + '</div>');
+    const mods = Memory.topModules(3);
+    if (mods.length) html.push('<div class="status-row"><span class="light warn"></span> 常用模块：' + mods.map(m => ({"bazi":"八字","tarot":"塔罗","liuyao":"六爻","meihua":"梅花","qimen":"奇门","fengshui":"风水","xingming":"姓名","shengxiao":"生肖","shuzi":"数字","meiri":"每日"}[m[0]] || m[0]) + '×' + m[1]).join(' · ') + '</div>');
+    const topics = Memory.topTopics(4);
+    if (topics.length) html.push('<div class="status-row"><span class="light on"></span> 关注主题：' + topics.map(t => XT.esc(t[0])).join('、') + '</div>');
+    const hist = XT.getHistory().slice(0, 3);
+    if (hist.length) html.push('<div class="status-row"><span class="light warn"></span> 最近推演：' + hist.map(h => { const t = ({"bazi":"八字","tarot":"塔罗","liuyao":"六爻","meihua":"梅花","qimen":"奇门","fengshui":"风水","xingming":"姓名","shengxiao":"生肖","shuzi":"数字","meiri":"每日","ai":"问鉴"}[h.module] || h.module) + '·' + XT.fmtDate(h.at); return t; }).join(' · ') + '</div>');
+    if (!html.length) html.push('<div class="muted">尚未产生记忆——完成一次推演，玄天将开始了解你。</div>');
+    document.getElementById('memBody').innerHTML = html.join('');
+  }
+  renderMem();
+
+  /* 管理员用户管理 */
+  const me = session.username;
+  if (session.role === 'admin') {
+    document.getElementById('userPanel').style.display = '';
+    renderUsers();
+  }
+  async function renderUsers() {
+    const users = await XT.listUsers();
+    const box = document.getElementById('userList');
+    box.innerHTML = '<table class="tbl"><tr><th>用户名</th><th>角色</th><th>显示名</th><th>操作</th></tr>' +
+      users.map(u => `<tr><td>${XT.esc(u.username)}</td><td>${u.role === 'admin' ? '管理员' : '用户'}</td><td>${XT.esc(u.displayName || '')}</td>
+        <td>${(u.username === 'admin' || u.username === 'kurbanj') ? '<span class="muted">—</span>' : `<button class="btn ghost sm" data-u="${XT.esc(u.username)}">移除</button>`}</td></tr>`).join('') + '</table>';
+    box.querySelectorAll('[data-u]').forEach(b => b.addEventListener('click', async () => {
+      const r = await XT.removeUser(b.getAttribute('data-u'));
+      XT.msg(document.getElementById('uMsg'), r.ok ? '已移除' : r.msg, r.ok ? 'ok' : 'err');
+      renderUsers();
+    }));
+  }
+  document.getElementById('addUserBtn').addEventListener('click', async () => {
+    const name = document.getElementById('nuName').value.trim();
+    const pass = document.getElementById('nuPass').value;
+    if (!name || pass.length < 4) { XT.msg(document.getElementById('uMsg'), '用户名与密码（至少4位）必填', 'err'); return; }
+    const r = await XT.addUser(name, pass, document.getElementById('nuRole').value, name);
+    XT.msg(document.getElementById('uMsg'), r.ok ? '用户已创建' : r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) { document.getElementById('nuName').value = ''; document.getElementById('nuPass').value = ''; renderUsers(); }
+    setTimeout(() => XT.hideMsg(document.getElementById('uMsg')), 2200);
+  });
+
+  refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问鉴 AI · 玄天智算</title>
+<meta name="description" content="玄天 AI · 融合典籍知识库与玄学算法的智能终端">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+<style>
+  .mode-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .mode-btn { padding: 8px 16px; border-radius: 30px; font-size: 12.5px; border: 1px solid var(--glass-border); background: transparent; color: var(--ink-2); transition: all .2s; }
+  .mode-btn.on { background: var(--gold-faint); color: var(--gold-bright); border-color: rgba(232,200,116,.45); }
+  .src-note { font-size: 11px; color: var(--ink-3); padding: 0 4px 6px; }
+</style>
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel" style="padding:20px;">
+    <div class="mode-bar">
+      <button class="mode-btn on" data-mode="chat">玄天对话</button>
+      <button class="mode-btn" data-mode="knowledge">典籍问答</button>
+    </div>
+    <div class="src-note" id="modeNote">自由对话 · 玄学大师 AI 全天候回应</div>
+    <div class="terminal">
+      <div class="t-head"><span class="light"></span><span class="tt">玄 天 · 智 算 终 端</span><span style="flex:1"></span><button class="btn ghost sm" id="clearBtn">清空</button></div>
+      <div class="t-body" id="tBody"></div>
+      <div class="t-input">
+        <input id="prompt" placeholder="向玄天发问…" autocomplete="off">
+        <button class="btn" id="sendBtn">传讯</button>
+      </div>
+    </div>
+    <div class="msg" id="errBox"></div>
+    <div class="src-note" style="margin-top:10px;">提示：玄天会优先检索你的典籍库再作答；未配置 AI 模型时，可先在「设置」填写 API Key。</div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'ai.html' });
+  const tBody = document.getElementById('tBody');
+  const errBox = document.getElementById('errBox');
+  let mode = 'chat';
+  let history = [];
+
+  /* 恢复历史 */
+  const saved = XT.getChat();
+  if (saved.length) {
+    history = saved;
+    history.forEach(m => renderMsg(m.role, m.content, false));
+  } else {
+    renderMsg('ai', '静候所问。凡命理、卦象、牌义、经典章句，皆可参详。玄天将先检索您的典籍库，再结合术数推演作答。');
+  }
+
+  function renderMsg(role, content, save = true) {
+    const div = document.createElement('div');
+    div.className = 'chat ' + (role === 'user' ? 'me' : 'ai');
+    div.innerHTML = `<div class="avatar">${role === 'user' ? '问' : '玄'}</div>
+      <div class="bubble">${role === 'user' ? XT.esc(content) : content}<span class="time">${XT.fmtTime(Date.now())}</span></div>`;
+    tBody.appendChild(div);
+    tBody.scrollTop = tBody.scrollHeight;
+    if (save) { history.push({ role, content }); XT.saveChat(history); }
+    return div;
+  }
+
+  document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    mode = b.getAttribute('data-mode');
+    document.getElementById('modeNote').textContent = mode === 'chat' ? '自由对话 · 玄学大师 AI 全天候回应' : '典籍问答 · 仅依据你的知识库作答，无据则明示';
+  }));
+
+  async function send() {
+    XT.hideMsg(errBox);
+    const p = document.getElementById('prompt').value.trim();
+    if (!p) return;
+    document.getElementById('prompt').value = '';
+    renderMsg('user', p);
+    const aiEl = renderMsg('ai', '<span class="thinking typing">玄天推演中…</span>', false);
+    const btn = document.getElementById('sendBtn'); btn.disabled = true;
+    try {
+      let reply;
+      if (mode === 'knowledge') {
+        if (!AIEngine.hasModel()) throw new Error('尚未配置 AI 模型，请先到「设置」填写 API Key');
+        reply = await AIEngine.askKnowledge(p);
+      } else {
+        const memCtx = Memory.context();
+        const msgs = [{ role: 'system', content: '你是「玄天智算」的玄学大师 AI，精通八字、六爻、梅花易数、奇门遁甲、风水、姓名学、塔罗、紫微斗数等东方术数，熟读古籍经典。回答典雅克制、结构清晰：先结论、后论证、再建议。' + (memCtx ? '\n' + memCtx.slice(0, 300) : '') }];
+        history.forEach(m => msgs.push({ role: m.role, content: m.content }));
+        msgs.push({ role: 'user', content: p });
+        reply = await AIEngine.chat(msgs);
+      }
+      aiEl.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>') + `<span class="time">${XT.fmtTime(Date.now())}</span>`;
+      history.push({ role: 'assistant', content: reply });
+      XT.saveChat(history);
+      XT.saveHistory({ module: 'ai', title: '问鉴：' + p.slice(0, 24), data: { q: p, a: reply } });
+    } catch (e) {
+      aiEl.innerHTML = '<span class="thinking">' + XT.esc(e.message) + '</span><span class="time">' + XT.fmtTime(Date.now()) + '</span>';
+    }
+    btn.disabled = false;
+  }
+  document.getElementById('sendBtn').addEventListener('click', send);
+  document.getElementById('prompt').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (!confirm('清空全部对话记录？')) return;
+    history = []; XT.saveChat([]); tBody.innerHTML = '';
+    renderMsg('ai', '静候所问。');
+  });
+</script>
+</body>
+</html>

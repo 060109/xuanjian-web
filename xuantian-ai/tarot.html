@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>塔罗占卜 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+<style>
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 18px; }
+  .tcard { perspective: 700px; height: 200px; cursor: pointer; }
+  .tcard .inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s var(--ease); }
+  .tcard.flip .inner { transform: rotateY(180deg); }
+  .tcard .face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--glass-border); }
+  .tcard .back { background: linear-gradient(160deg, #1a1430, #0a0e1a); box-shadow: 0 8px 30px rgba(0,0,0,.5), inset 0 0 40px rgba(232,200,116,.08); }
+  .tcard .back .sun { width: 54px; height: 54px; border-radius: 50%; border: 2px dashed var(--gold-dim); display: flex; align-items: center; justify-content: center; font-family: var(--font-serif); color: var(--gold); animation: auraSpin 24s linear infinite; }
+  .tcard .front { transform: rotateY(180deg); background: linear-gradient(160deg, rgba(232,200,116,.16), rgba(20,26,48,.9)); padding: 12px; }
+  .tcard .front .pos { font-size: 10.5px; color: var(--ink-3); letter-spacing: .2em; }
+  .tcard .front .nm { font-family: var(--font-serif); font-size: 16px; color: var(--gold-bright); text-align: center; }
+  .tcard .front .or { font-size: 12px; color: var(--cyan); }
+</style>
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">牌</span>
+    <h2>塔罗占卜</h2>
+    <div class="sub">五大牌阵 · 卡牌动画 · 翻牌解义</div>
+    <div class="row c2">
+      <div class="field"><label>牌阵</label>
+        <select id="spread">
+          <option value="single">单牌占卜 · 一事一问</option>
+          <option value="three" selected>三牌牌阵 · 过去现在未来</option>
+          <option value="timeflow">时间流 · 五牌推演</option>
+          <option value="career">事业牌阵</option>
+          <option value="love">感情牌阵</option>
+        </select><span class="bar"></span></div>
+      <div class="field"><label>所问之事</label><input id="question" placeholder="默念所问之事"><span class="bar"></span></div>
+    </div>
+    <button class="btn block" id="drawBtn">凝神 · 洗牌</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">阵</span>
+    <h2>牌面</h2>
+    <div class="sub" id="r-spread"></div>
+    <div class="card-grid" id="cards"></div>
+    <div class="divider"></div>
+    <div id="meanings"></div>
+    <details><summary>牌面数据</summary><pre class="raw" id="r-json"></pre></details>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 解读牌意</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'tarot.html' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+
+  document.getElementById('drawBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    try {
+      const spread = document.getElementById('spread').value;
+      const q = document.getElementById('question').value.trim();
+      const r = Engine.run('tarot', { spread, question: q });
+      ctx = r.aiContext;
+      document.getElementById('r-spread').textContent = (r.data.spread.name || spread) + (q ? ' · 「' + q + '」' : '');
+      const positions = r.data.spread.positions || r.data.cards.map((c, i) => '位置' + (i + 1));
+      document.getElementById('cards').innerHTML = r.data.cards.map((c, i) =>
+        `<div class="tcard" data-i="${i}"><div class="inner"><div class="face back"><div class="sun">玄</div></div>
+        <div class="face front"><div class="pos">${XT.esc(positions[i] || '')}</div><div class="nm">${XT.esc(c.name || c.card || '')}</div>
+        <div class="or">${c.reversed ? '逆位' : '正位'}</div></div></div></div>`).join('');
+      document.querySelectorAll('.tcard').forEach(cd => cd.addEventListener('click', () => cd.classList.add('flip')));
+      // 自动翻牌动画
+      r.data.cards.forEach((c, i) => setTimeout(() => { const el = document.querySelector(`.tcard[data-i="${i}"]`); if (el) el.classList.add('flip'); }, 400 + i * 350));
+      document.getElementById('meanings').innerHTML = r.data.cards.map((c, i) =>
+        `<div class="verdict"><b>${XT.esc(positions[i] || '')} · ${XT.esc(c.name || c.card || '')}（${c.reversed ? '逆位' : '正位'}）。</b>${XT.esc(A.cardMeaning(c) || '')}</div>`).join('');
+      document.getElementById('r-json').textContent = JSON.stringify(r.data.cards, null, 2);
+      XT.show(document.getElementById('result'), true);
+      XT.show(document.getElementById('aiPanel'), true);
+      Memory.record('tarot', { spread, question: q });
+      XT.bump('calcs');
+      XT.saveHistory({ module: 'tarot', title: '塔罗 ' + (r.data.spread.name || spread) + (q ? ' · ' + q : ''), data: r.data });
+    } catch (e) { XT.msg(errBox, '抽牌出错：' + e.message, 'err'); }
+  });
+
+  document.getElementById('aiBtn').addEventListener('click', async () => {
+    const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
+    if (!ctx) { XT.msg(box, '请先完成抽牌', 'err'); return; }
+    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    XT.msg(box, '玄天感应中…（检索典籍 + 融合推演）', 'ok');
+    const btn = document.getElementById('aiBtn'); btn.disabled = true;
+    try {
+      const q = document.getElementById('question').value.trim() || '请解读本次牌面';
+      const reply = await AIEngine.analyze({ query: q, algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display = '';
+      out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.hideMsg(box);
+    } catch (e) { XT.msg(box, e.message, 'err'); }
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>

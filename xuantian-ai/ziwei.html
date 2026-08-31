@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>紫微斗数 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">紫</span>
+    <h2>紫微斗数</h2>
+    <div class="sub">星曜命盘 · 十四主星 · 十二宫位</div>
+    <div class="row c4">
+      <div class="field"><label>年</label><input id="y" type="number" value="1995" min="1900" max="2100"><span class="bar"></span></div>
+      <div class="field"><label>月</label><input id="m" type="number" value="6" min="1" max="12"><span class="bar"></span></div>
+      <div class="field"><label>日</label><input id="d" type="number" value="15" min="1" max="31"><span class="bar"></span></div>
+      <div class="field"><label>时</label>
+        <select id="h"><option value="0">子时</option><option value="1">丑时</option><option value="3">寅时</option><option value="5">卯时</option><option value="7" selected>辰时</option><option value="9">巳时</option><option value="11">午时</option><option value="13">未时</option><option value="15">申时</option><option value="17">酉时</option><option value="19">戌时</option><option value="21">亥时</option></select><span class="bar"></span></div>
+    </div>
+    <div class="field"><label>性别</label><select id="g"><option value="male">乾造 · 男</option><option value="female">坤造 · 女</option></select><span class="bar"></span></div>
+    <button class="btn block" id="calcBtn">排定命盘</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">盘</span>
+    <h2>命盘推演</h2>
+    <div class="verdict" id="r-out"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script>
+  XTApp.init({ active: 'ziwei.html' });
+  const errBox = document.getElementById('errBox');
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    try {
+      const r = Engine.run('ziwei', {
+        year: +document.getElementById('y').value, month: +document.getElementById('m').value,
+        day: +document.getElementById('d').value, hour: +document.getElementById('h').value,
+      });
+      document.getElementById('r-out').innerHTML = r.text.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.show(document.getElementById('result'), true);
+      XT.bump('calcs');
+    } catch (e) { XT.msg(errBox, '排盘出错：' + e.message, 'err'); }
+  });
+</script>
+</body>
+</html>

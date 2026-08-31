@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日运势 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">日</span>
+    <h2>每日运势</h2>
+    <div class="sub">当日干支 · 黄历宜忌 · 运势指数</div>
+    <div class="field"><label>日期（选填，默认今日）</label><input id="date" type="date"><span class="bar"></span></div>
+    <button class="btn block" id="calcBtn">启运今日</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">象</span>
+    <h2>推演结果</h2>
+    <div class="sub" id="r-sub"></div>
+    <div class="verdict" id="r-out"></div>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 深度解析</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'meiri.html' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    try {
+      const r = Engine.run('meiri', { date: document.getElementById('date').value || undefined });
+      ctx = r.aiContext;
+      document.getElementById('r-sub').textContent = '今日干支 ' + r.data.ganzhi;
+      document.getElementById('r-out').innerHTML = r.text.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.show(document.getElementById('result'), true); XT.show(document.getElementById('aiPanel'), true);
+      Memory.record('meiri', { date: document.getElementById('date').value || undefined });
+      XT.bump('calcs'); XT.saveHistory({ module: 'meiri', title: '每日运势 ' + r.data.ganzhi, data: r.data });
+    } catch (e) { XT.msg(errBox, '推演出错：' + e.message, 'err'); }
+  });
+  document.getElementById('aiBtn').addEventListener('click', async () => {
+    const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
+    if (!ctx) { XT.msg(box, '请先启运今日', 'err'); return; }
+    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    XT.msg(box, '玄天感应中…', 'ok'); const btn = document.getElementById('aiBtn'); btn.disabled = true;
+    try { const reply = await AIEngine.analyze({ query: '请结合当日干支与黄历，给出今日行事建议。', algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display=''; out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>'); XT.hideMsg(box);
+    } catch (e) { XT.msg(box, e.message, 'err'); } btn.disabled = false;
+  });
+</script>
+</body>
+</html>

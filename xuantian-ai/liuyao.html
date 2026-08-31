@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>六爻预测 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+<style>
+  .gua-view { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  .gua-card { padding: 18px; border-radius: 14px; background: rgba(20,26,48,.6); border: 1px solid var(--glass-border); }
+  .gua-card .gt { font-size: 11.5px; color: var(--ink-3); letter-spacing: .25em; margin-bottom: 10px; }
+  .gua-card .gname { font-family: var(--font-serif); font-size: 24px; color: var(--gold-bright); margin-bottom: 10px; }
+  .yao { display: flex; align-items: center; gap: 10px; padding: 3px 0; }
+  .yao .yn { width: 44px; font-size: 11px; color: var(--ink-3); }
+  .yao .lines { font-family: var(--font-mono); font-size: 17px; letter-spacing: 2px; color: var(--gold-bright); }
+  .yao.moving .lines { color: var(--cyan); text-shadow: 0 0 8px rgba(127,212,232,.6); }
+</style>
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">爻</span>
+    <h2>六爻预测</h2>
+    <div class="sub">时间 / 数字 / 铜钱 三种起卦 · 卦象断事</div>
+    <div class="field"><label>起卦方式</label>
+      <select id="method">
+        <option value="time" selected>时间起卦（年月日时）</option>
+        <option value="number">数字起卦（报三个数）</option>
+        <option value="auto">铜钱摇卦（自动）</option>
+      </select><span class="bar"></span></div>
+    <div class="row c4" id="timeRow">
+      <div class="field"><label>年</label><input id="y" type="number" value="2026" min="1900" max="2100"><span class="bar"></span></div>
+      <div class="field"><label>月</label><input id="m" type="number" value="8" min="1" max="12"><span class="bar"></span></div>
+      <div class="field"><label>日</label><input id="d" type="number" value="25" min="1" max="31"><span class="bar"></span></div>
+      <div class="field"><label>时</label><input id="h" type="number" value="18" min="0" max="23"><span class="bar"></span></div>
+    </div>
+    <div class="row c3" id="numRow" style="display:none;">
+      <div class="field"><label>数字一</label><input id="n1" type="number" value="3"><span class="bar"></span></div>
+      <div class="field"><label>数字二</label><input id="n2" type="number" value="5"><span class="bar"></span></div>
+      <div class="field"><label>数字三</label><input id="n3" type="number" value="7"><span class="bar"></span></div>
+    </div>
+    <div class="field"><label>所问之事</label><input id="question" placeholder="默念所问，凝神起卦"><span class="bar"></span></div>
+    <button class="btn block" id="calcBtn">起卦断卦</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">卦</span>
+    <h2>卦象</h2>
+    <div class="sub" id="r-method"></div>
+    <div class="gua-view" id="guas"></div>
+    <div class="verdict" id="r-conclusion"></div>
+    <details><summary>完整卦象数据</summary><pre class="raw" id="r-json"></pre></details>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 断卦详解</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'liuyao.html' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+
+  document.getElementById('method').addEventListener('change', function () {
+    const v = this.value;
+    document.getElementById('timeRow').style.display = v === 'time' ? '' : 'none';
+    document.getElementById('numRow').style.display = v === 'number' ? '' : 'none';
+  });
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    const method = document.getElementById('method').value;
+    try {
+      const input = method === 'time' ? { method, year: +document.getElementById('y').value, month: +document.getElementById('m').value, day: +document.getElementById('d').value, hour: +document.getElementById('h').value }
+        : method === 'number' ? { method, n1: +document.getElementById('n1').value, n2: +document.getElementById('n2').value, n3: +document.getElementById('n3').value }
+        : { method };
+      const r = Engine.run('liuyao', input);
+      ctx = r.aiContext;
+      document.getElementById('r-method').textContent = '起卦：' + (r.data.method || method);
+      function guaHtml(g, label) {
+        if (!g) return '';
+        const yaoHtml = (g.yao || []).slice().reverse().map((v, i) => {
+          const idx = 5 - i;
+          const yang = v === 1 || v === 3;
+          const moving = v === 3 || v === 4;
+          return `<div class="yao${moving ? ' moving' : ''}"><span class="yn">${['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'][idx]}</span><span class="lines">${yang ? '━━━━━' : '━━　━━'}</span>${moving ? '<span class="yn" style="color:var(--cyan);">动</span>' : ''}</div>`;
+        }).join('');
+        return `<div class="gua-card"><div class="gt">${label}</div><div class="gname">${g.name || ''}</div>${yaoHtml}</div>`;
+      }
+      document.getElementById('guas').innerHTML =
+        (r.data.benGua ? guaHtml(r.data.benGua, '本卦') : '') + (r.data.bianGua ? guaHtml(r.data.bianGua, '变卦') : '');
+      const extra = [];
+      if (r.data.shiYao) extra.push('世爻' + r.data.shiYao);
+      if (r.data.yingYao) extra.push('应爻' + r.data.yingYao);
+      if (r.data.movingYao && r.data.movingYao.length) extra.push('动爻：' + r.data.movingYao.join('、'));
+      if (r.data.relation) extra.push('体用' + r.data.relation);
+      document.getElementById('r-conclusion').innerHTML = `<b>断语。</b>${XT.esc(r.data.conclusion || '')}${extra.length ? '<br>' + extra.join(' · ') : ''}`;
+      document.getElementById('r-json').textContent = JSON.stringify(r.data, null, 2);
+      XT.show(document.getElementById('result'), true);
+      XT.show(document.getElementById('aiPanel'), true);
+      Memory.record('liuyao', input);
+      XT.bump('calcs');
+      XT.saveHistory({ module: 'liuyao', title: '六爻起卦 ' + (r.data.benGua?.name || method), data: r.data });
+    } catch (e) { XT.msg(errBox, '起卦出错：' + e.message, 'err'); }
+  });
+
+  document.getElementById('aiBtn').addEventListener('click', async () => {
+    const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
+    if (!ctx) { XT.msg(box, '请先起卦', 'err'); return; }
+    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    XT.msg(box, '玄天感应中…（检索典籍 + 融合推演）', 'ok');
+    const btn = document.getElementById('aiBtn'); btn.disabled = true;
+    try {
+      const q = document.getElementById('question').value.trim() || '请解此卦';
+      const reply = await AIEngine.analyze({ query: q, algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display = '';
+      out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.hideMsg(box);
+    } catch (e) { XT.msg(box, e.message, 'err'); }
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>

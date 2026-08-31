@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>姓名学 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">名</span>
+    <h2>姓名学</h2>
+    <div class="sub">五格剖象 · 三才五行 · 综合数理</div>
+    <div class="field"><label>姓名</label><input id="name" placeholder="输入姓名（如：李明轩）"><span class="bar"></span></div>
+    <button class="btn block" id="calcBtn">分析数理</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">格</span>
+    <h2>五格数理</h2>
+    <div class="sub" id="r-sub"></div>
+    <div class="grid-cards" id="wuge" style="grid-template-columns:repeat(5,1fr);"></div>
+    <div class="verdict" id="r-suggest"></div>
+    <div class="ai-note" id="r-detail"></div>
+    <details><summary>完整数理数据</summary><pre class="raw" id="r-json"></pre></details>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 姓名详解</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'xingming.html' });
+  Memory.prefill('xingming', { name: 'name' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    const name = document.getElementById('name').value.trim();
+    if (!name) { XT.msg(errBox, '请输入姓名', 'err'); return; }
+    try {
+      const r = Engine.run('xingming', { name });
+      ctx = r.aiContext;
+      document.getElementById('r-sub').textContent = '姓名「' + name + '」 · 综合评分 ' + (r.data.score != null ? r.data.score + ' 分' : '—');
+      const wg = r.data.wuge || r.data.fiveGrids || {};
+      document.getElementById('wuge').innerHTML = [['天格', 'tian'], ['人格', 'ren'], ['地格', 'di'], ['外格', 'wai'], ['总格', 'zong']].map(([cn, key]) => {
+        const v = wg[key] != null ? wg[key] : wg[cn];
+        return `<div class="mini-card"><div class="k">${cn}</div><div class="v">${v == null ? '—' : (typeof v === 'object' ? (v.num ?? v.value ?? JSON.stringify(v)) : v)}</div></div>`;
+      }).join('');
+      document.getElementById('r-suggest').innerHTML = `<b>建议。</b>${XT.esc(r.data.suggestion || r.data.advice || '')}`;
+      document.getElementById('r-detail').textContent = r.data.sancai ? '三才配置：' + (typeof r.data.sancai === 'string' ? r.data.sancai : JSON.stringify(r.data.sancai)) : '';
+      document.getElementById('r-json').textContent = JSON.stringify(r.data, null, 2);
+      XT.show(document.getElementById('result'), true);
+      XT.show(document.getElementById('aiPanel'), true);
+      Memory.record('xingming', { name });
+      XT.bump('calcs');
+      XT.saveHistory({ module: 'xingming', title: '姓名分析 ' + name, data: r.data });
+    } catch (e) { XT.msg(errBox, '分析出错：' + e.message, 'err'); }
+  });
+
+  document.getElementById('aiBtn').addEventListener('click', async () => {
+    const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
+    if (!ctx) { XT.msg(box, '请先分析数理', 'err'); return; }
+    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    XT.msg(box, '玄天感应中…（检索典籍 + 融合推演）', 'ok');
+    const btn = document.getElementById('aiBtn'); btn.disabled = true;
+    try {
+      const reply = await AIEngine.analyze({ query: '请结合姓名学典籍，对「' + document.getElementById('name').value.trim() + '」做深度解析与改名建议。', algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display = '';
+      out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.hideMsg(box);
+    } catch (e) { XT.msg(box, e.message, 'err'); }
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>

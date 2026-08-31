@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>八字命理 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">命</span>
+    <h2>八字命理</h2>
+    <div class="sub">四柱排盘 · 五行十神 · 大运流年 · 命理参详</div>
+    <div class="row c4">
+      <div class="field"><label>姓名</label><input id="name" placeholder="选填"><span class="bar"></span></div>
+      <div class="field"><label>出生年</label><input id="y" type="number" value="1995" min="1900" max="2100"><span class="bar"></span></div>
+      <div class="field"><label>出生月</label><input id="m" type="number" value="6" min="1" max="12"><span class="bar"></span></div>
+      <div class="field"><label>出生日</label><input id="d" type="number" value="15" min="1" max="31"><span class="bar"></span></div>
+      <div class="field"><label>时辰</label>
+        <select id="h">
+          <option value="0">子时 23–1</option><option value="1">丑时 1–3</option><option value="2">丑时 3–5</option>
+          <option value="3">寅时 5–7</option><option value="4">卯时 7–9</option><option value="5">辰时 9–11</option>
+          <option value="6">巳时 11–13</option><option value="7" selected>午时 13–15</option><option value="8">未时 15–17</option>
+          <option value="9">申时 17–19</option><option value="10">酉时 19–21</option><option value="11">戌时 21–23</option>
+          <option value="12">亥时 23–1</option>
+        </select><span class="bar"></span></div>
+      <div class="field"><label>性别</label>
+        <select id="g"><option value="male" selected>乾造 · 男</option><option value="female">坤造 · 女</option></select><span class="bar"></span></div>
+      <div class="field"><label>出生地（选填）</label><input id="p" placeholder="如：北京"><span class="bar"></span></div>
+    </div>
+    <button class="btn block" id="calcBtn">排盘推演</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">盘</span>
+    <h2>四柱八字</h2>
+    <div class="sub" id="r-sub"></div>
+    <div class="grid-cards" id="pillars" style="grid-template-columns:repeat(4,1fr);"></div>
+    <div class="divider"></div>
+    <h2 style="font-size:15px;">五行 · 强弱 · 格局</h2>
+    <div class="grid-cards" id="wx" style="grid-template-columns:repeat(5,1fr);"></div>
+    <div class="verdict" id="strong"></div>
+    <div class="divider"></div>
+    <h2 style="font-size:15px;">大运</h2>
+    <div class="note muted" id="dyHead"></div>
+    <div style="overflow-x:auto;"><table class="tbl" id="dyTable"></table></div>
+    <div class="divider"></div>
+    <h2 style="font-size:15px;">命理参详</h2>
+    <div id="analysis"></div>
+    <details><summary>完整排盘数据</summary><pre class="raw" id="r-json"></pre></details>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 生成专属解析</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'bazi.html' });
+  Memory.prefill('bazi', { gender: 'g' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    const y = +document.getElementById('y').value, m = +document.getElementById('m').value,
+      d = +document.getElementById('d').value, h = +document.getElementById('h').value,
+      gender = document.getElementById('g').value;
+    if (!y || !m || !d) { XT.msg(errBox, '请填写完整的出生年月日', 'err'); return; }
+    try {
+      const r = Engine.run('bazi', { year: y, month: m, day: d, hour: h, gender, place: document.getElementById('p').value.trim() });
+      ctx = r.aiContext;
+      document.getElementById('r-sub').textContent = (gender === 'male' ? '乾造' : '坤造') + ' · ' + y + '年' + m + '月' + d + '日' + (document.getElementById('p').value.trim() ? ' · ' + document.getElementById('p').value.trim() : '');
+      const labels = { year: '年柱', month: '月柱', day: '日柱', hour: '时柱' };
+      document.getElementById('pillars').innerHTML = ['year', 'month', 'day', 'hour'].map(k => {
+        const p = r.data.pillars[k];
+        return `<div class="mini-card"><div class="k">${labels[k]}</div><div class="v">${p.gan}${p.zhi}</div><div class="d">${p.shengXiao ? '生肖' + p.shengXiao : ''}</div></div>`;
+      }).join('');
+      const wxs = { 木: '木', 火: '火', 土: '土', 金: '金', 水: '水' };
+      document.getElementById('wx').innerHTML = Object.keys(wxs).map(k =>
+        `<div class="mini-card"><div class="k">${k}</div><div class="v">${'●'.repeat(Math.max(1, r.data.wuxing[k] || 0))}</div><div class="d">${r.data.wuxing[k] || 0} 数</div></div>`).join('');
+      document.getElementById('strong').innerHTML = `<b>日主 ${r.data.dayGan}（${r.data.dayGanWX}）</b> · ${r.data.strength} · 格局：${r.data.pattern} · 生肖 ${r.data.shengXiao}`;
+      if (r.data.dayun && r.data.dayun.list && r.data.dayun.list.length) {
+        document.getElementById('dyHead').textContent = `${r.data.dayun.direction}行大运 · ${r.data.dayun.startAge}岁起运`;
+        document.getElementById('dyTable').innerHTML = '<tr><th>序</th><th>大运</th><th>起于</th><th>岁数</th></tr>' + r.data.dayun.list.map((x, i) =>
+          `<tr><td>${i + 1}</td><td><b>${x.ganzhi || (x.gan + x.zhi)}</b></td><td>${x.startYear}</td><td>${x.ageStart ?? x.startAge} – ${(x.ageStart ?? x.startAge) + 9}</td></tr>`).join('');
+      }
+      const a = r.data.analysis || {};
+      document.getElementById('analysis').innerHTML = [['性 情', a.personality], ['事 业', a.career], ['财 运', a.wealth], ['健 康', a.health]]
+        .filter(s => s[1]).map(s => `<div class="verdict"><b>${s[0]}。</b>${XT.esc(s[1])}</div>`).join('');
+      document.getElementById('r-json').textContent = JSON.stringify(r.data, null, 2);
+      XT.show(document.getElementById('result'), true);
+      XT.show(document.getElementById('aiPanel'), true);
+      XT.hideMsg(document.getElementById('aiBox'));
+      document.getElementById('aiOut').style.display = 'none';
+      Memory.record('bazi', { year: y, month: m, day: d, hour: h, gender, place: document.getElementById('p').value.trim() });
+      XT.bump('calcs');
+      XT.saveHistory({ module: 'bazi', title: '八字排盘 ' + y + '年' + m + '月' + d + '日', data: r.data });
+    } catch (e) { XT.msg(errBox, '排盘出错：' + e.message, 'err'); }
+  });
+
+  document.getElementById('aiBtn').addEventListener('click', async () => {
+    const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
+    if (!ctx) { XT.msg(box, '请先完成排盘推演', 'err'); return; }
+    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    XT.msg(box, '玄天感应中…（检索典籍 + 融合推演）', 'ok');
+    const btn = document.getElementById('aiBtn'); btn.disabled = true;
+    try {
+      const reply = await AIEngine.analyze({ query: '请为以上命盘做深度解析：性格、事业、财运、感情与建议。', algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display = '';
+      out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.hideMsg(box);
+    } catch (e) { XT.msg(box, e.message, 'err'); }
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>

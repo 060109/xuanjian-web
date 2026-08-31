@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>藏经阁 · 玄天智算</title>
+<meta name="description" content="玄天知识库 · 上传典籍 · 自动分类索引 · AI 检索依据">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">典</span>
+    <h2>藏经阁 · 知识库</h2>
+    <div class="sub">上传玄学典籍（PDF / TXT / MD / DOC），系统自动分类、建索引、生成标签</div>
+    <div class="dropzone" id="dropzone">
+      <div style="font-size:30px;margin-bottom:8px;">📜</div>
+      拖拽典籍至此，或点击选择文件<br>
+      <span class="muted" style="font-size:11px;">支持 PDF / TXT / Markdown / DOC · 上传后自动入阁</span>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,.txt,.md,.markdown,.doc" multiple style="display:none;">
+    <div class="msg" id="errBox"></div>
+    <div class="row c2">
+      <div class="field"><label>检索关键词</label><input id="kw" placeholder="如：滴天髓、五行、十神"><span class="bar"></span></div>
+      <div class="field"><label>分类筛选</label>
+        <select id="cat"><option value="">全部分类</option></select><span class="bar"></span></div>
+    </div>
+    <button class="btn" id="searchBtn">检 索</button>
+  </div>
+
+  <div class="panel">
+    <h2>典籍列表</h2>
+    <div class="sub" id="count"></div>
+    <div id="docList"></div>
+    <div class="msg" id="aiBox"></div>
+  </div>
+
+  <div class="panel result" id="viewBox">
+    <h2 id="viewTitle">—</h2>
+    <div class="sub" id="viewMeta"></div>
+    <div style="white-space:pre-wrap;font-size:13.5px;line-height:2;color:var(--ink-2);max-height:420px;overflow-y:auto;padding:14px;border:1px solid var(--glass-border);border-radius:12px;background:rgba(8,11,22,.5);" id="viewContent"></div>
+    <div style="margin-top:14px;">
+      <button class="btn ghost sm" id="backBtn">← 返回列表</button>
+      <button class="btn ghost sm" id="delBtn" style="color:var(--danger);margin-left:8px;">删除</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/knowledge.js"></script>
+<script>
+  XTApp.init({ active: 'knowledge.html' });
+  const errBox = document.getElementById('errBox');
+  const aiBox = document.getElementById('aiBox');
+  let allDocs = [];
+  let viewId = null;
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault(); dropzone.classList.remove('drag');
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFiles(fileInput.files); });
+
+  async function handleFiles(files) {
+    XT.hideMsg(errBox);
+    let ok = 0;
+    for (const f of Array.from(files)) {
+      try {
+        XT.msg(aiBox, '正在收录《' + f.name + '》…', 'ok');
+        const { title, content } = await Knowledge.parseFile(f);
+        if (!content || content.length < 20) throw new Error('未能提取到文本内容');
+        const category = Knowledge.classify(title, content);
+        const tags = Knowledge.extractTags(title, content);
+        XT.addDoc({ title, category, tags, content });
+        ok++;
+      } catch (e) {
+        XT.msg(errBox, '《' + f.name + '》收录失败：' + e.message, 'err');
+      }
+    }
+    XT.hideMsg(aiBox);
+    if (ok) { XT.msg(errBox, '成功收录 ' + ok + ' 部典籍，已自动分类编目', 'ok'); XT.bump('docs'); }
+    setTimeout(() => XT.hideMsg(errBox), 2600);
+    loadAndRender();
+  }
+
+  async function loadAndRender(kw = '', cat = '') {
+    allDocs = await Knowledge.loadAll();
+    const cats = [...new Set(allDocs.map(d => d.category))].sort();
+    const catSel = document.getElementById('cat');
+    catSel.innerHTML = '<option value="">全部分类</option>' + cats.map(c => `<option value="${XT.esc(c)}">${XT.esc(c)}</option>`).join('');
+    catSel.value = cat;
+    const list = allDocs.filter(d => {
+      if (cat && d.category !== cat) return false;
+      if (kw) { const blob = (d.title + ' ' + d.content).toLowerCase(); if (blob.indexOf(kw.toLowerCase()) === -1) return false; }
+      return true;
+    });
+    document.getElementById('count').textContent = '共 ' + allDocs.length + ' 部典籍 · 显示 ' + list.length + ' 部';
+    const box = document.getElementById('docList');
+    if (!list.length) { box.innerHTML = '<div class="muted" style="padding:26px;text-align:center;">藏经阁尚空 —— 上传第一部典籍，开启你的知识宇宙</div>'; return; }
+    box.innerHTML = list.map(d => `
+      <div class="doc-card">
+        <div class="info">
+          <div class="tt">${d.builtin ? '📖' : '📜'} ${XT.esc(d.title)}</div>
+          <div class="mt">${XT.esc(d.category)} · ${d.builtin ? '内置' : (XT.fmtDate(d.createdAt))} · ${(d.content || '').length} 字</div>
+          <div class="tags">${(d.tags || []).slice(0, 6).map(t => `<span class="chip">${XT.esc(t)}</span>`).join('')}</div>
+        </div>
+        <button class="btn ghost sm" data-id="${d.id}" data-action="view">研读</button>
+      </div>`).join('');
+    box.querySelectorAll('[data-action="view"]').forEach(b => b.addEventListener('click', () => viewDoc(b.getAttribute('data-id'))));
+  }
+
+  function viewDoc(id) {
+    const d = allDocs.find(x => x.id === id);
+    if (!d) return;
+    viewId = id;
+    document.getElementById('viewTitle').textContent = d.title;
+    document.getElementById('viewMeta').textContent = d.category + ' · ' + (d.builtin ? '内置典籍' : XT.fmtDate(d.createdAt)) + (d.tags && d.tags.length ? ' · ' + d.tags.join(' / ') : '');
+    document.getElementById('viewContent').textContent = d.content || '';
+    XT.show(document.getElementById('viewBox'), true);
+    document.getElementById('delBtn').style.display = d.builtin ? 'none' : '';
+    document.getElementById('viewBox').scrollIntoView({ behavior: 'smooth' });
+  }
+  document.getElementById('backBtn').addEventListener('click', () => XT.show(document.getElementById('viewBox'), false));
+  document.getElementById('delBtn').addEventListener('click', () => {
+    if (!viewId) return;
+    if (!confirm('确定移出藏经阁？')) return;
+    XT.removeDoc(viewId);
+    XT.show(document.getElementById('viewBox'), false);
+    loadAndRender();
+  });
+  document.getElementById('searchBtn').addEventListener('click', () => {
+    loadAndRender(document.getElementById('kw').value.trim(), document.getElementById('cat').value);
+  });
+  document.getElementById('kw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') loadAndRender(document.getElementById('kw').value.trim(), document.getElementById('cat').value);
+  });
+
+  loadAndRender();
+</script>
+</body>
+</html>

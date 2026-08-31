@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置 · 玄天智算</title>
+<meta name="description" content="AI 大模型配置中心">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">设</span>
+    <h2>大模型配置</h2>
+    <div class="sub">配置后，全站玄学功能将自动接入 AI 融合解读（配置仅保存在本机浏览器）</div>
+    <div class="field"><label>模型服务商</label>
+      <select id="provider">
+        <option value="deepseek">DeepSeek</option>
+        <option value="openai">OpenAI</option>
+        <option value="claude">Claude (Anthropic)</option>
+        <option value="gemini">Gemini (Google)</option>
+        <option value="custom">自定义（OpenAI 兼容）</option>
+      </select><span class="bar"></span></div>
+    <div class="field"><label>API 地址</label><input id="base" placeholder="留空使用服务商默认地址"><span class="bar"></span></div>
+    <div class="field"><label>API Key</label><input id="key" type="password" placeholder="sk-…" autocomplete="off"><span class="bar"></span></div>
+    <div class="field"><label>模型名称</label><input id="model" placeholder="如：deepseek-chat"><span class="bar"></span></div>
+    <div class="field"><label>温度（0–1.5，越低越严谨）</label><input id="temperature" type="number" step="0.1" min="0" max="1.5" value="0.7"><span class="bar"></span></div>
+    <button class="btn" id="saveBtn">保存配置</button>
+    <button class="btn ghost" id="testBtn" style="margin-left:10px;">测试连接</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel">
+    <h2>数据管理</h2>
+    <div class="sub">本机存储：用户 / 典籍 / 历史 / 聊天记录</div>
+    <button class="btn ghost" id="exportBtn">导出典籍数据</button>
+    <button class="btn ghost" id="clearBtn" style="color:var(--danger);margin-left:10px;">清空本机数据</button>
+    <div class="msg" id="dMsg"></div>
+  </div>
+
+  <div class="panel">
+    <h2>关于玄天</h2>
+    <div class="sub">玄天智算 XuanTian AI v1.0 · 东方玄学宇宙智能系统</div>
+    <div class="note muted" style="font-size:12.5px;line-height:2;">
+      算法引擎：八字 / 塔罗 / 六爻 / 梅花易数 / 奇门遁甲 / 风水 / 姓名学（传统术数算法）<br>
+      知识引擎：典籍上传 · 自动分类 · 全文索引 · 关键词检索（RAG）<br>
+      AI 引擎：多模型接入（DeepSeek / OpenAI / Claude / Gemini / 自定义）<br>
+      未来扩展：AI 面相 / 手相 / 视频解盘 / 真人大师 / 会员体系 / 私人命盘
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'settings.html' });
+  const errBox = document.getElementById('errBox');
+  const dMsg = document.getElementById('dMsg');
+  const providers = AIEngine.PROVIDERS;
+  const cfg = XT.getSettings();
+
+  document.getElementById('provider').value = cfg.provider || 'deepseek';
+  document.getElementById('base').value = cfg.base || '';
+  document.getElementById('key').value = cfg.key || '';
+  document.getElementById('model').value = cfg.model || '';
+  document.getElementById('temperature').value = cfg.temperature != null ? cfg.temperature : 0.7;
+
+  document.getElementById('provider').addEventListener('change', function () {
+    const p = providers.find(x => x.id === this.value);
+    if (p) {
+      document.getElementById('base').placeholder = p.base || '自定义 OpenAI 兼容地址';
+      document.getElementById('model').placeholder = p.model || '自定义模型名';
+    }
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const provider = document.getElementById('provider').value;
+    const p = providers.find(x => x.id === provider);
+    XT.saveSettings({
+      provider,
+      base: document.getElementById('base').value.trim() || p.base,
+      key: document.getElementById('key').value.trim(),
+      model: document.getElementById('model').value.trim() || p.model,
+      temperature: +document.getElementById('temperature').value || 0.7,
+    });
+    XT.msg(errBox, '配置已保存 · 玄天引擎待命', 'ok');
+    setTimeout(() => XT.hideMsg(errBox), 2200);
+  });
+
+  document.getElementById('testBtn').addEventListener('click', async () => {
+    XT.hideMsg(errBox);
+    if (!document.getElementById('key').value.trim()) { XT.msg(errBox, '请先填写 API Key', 'err'); return; }
+    document.getElementById('testBtn').disabled = true;
+    XT.msg(errBox, '正在连接模型服务…', 'ok');
+    try {
+      const reply = await AIEngine.chat([{ role: 'user', content: '请回复：玄天引擎连接正常' }]);
+      XT.msg(errBox, '连接成功：' + reply.slice(0, 60), 'ok');
+    } catch (e) {
+      XT.msg(errBox, '连接失败：' + e.message, 'err');
+    }
+    document.getElementById('testBtn').disabled = false;
+    setTimeout(() => XT.hideMsg(errBox), 4000);
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const data = JSON.stringify({ docs: XT.getDocs(), settings: XT.getSettings() }, null, 2);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    a.download = 'xuantian-backup-' + XT.today() + '.json';
+    a.click();
+    XT.msg(dMsg, '备份已导出', 'ok');
+    setTimeout(() => XT.hideMsg(dMsg), 2200);
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (!confirm('确定清空本机全部数据（用户/典籍/历史/聊天）？此操作不可恢复。')) return;
+    ['xt_users', 'xt_docs', 'xt_history', 'xt_chat', 'xt_settings', 'xt_usage'].forEach(k => localStorage.removeItem(k));
+    XT.msg(dMsg, '数据已清空', 'ok');
+    setTimeout(() => { XT.logout(); location.href = 'login.html'; }, 1200);
+  });
+</script>
+</body>
+</html>

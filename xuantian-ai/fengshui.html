@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>风水分析 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">宅</span>
+    <h2>风水分析</h2>
+    <div class="sub">方位五行 · 布局建议 · 阳宅要点</div>
+    <div class="row c2">
+      <div class="field"><label>住宅坐向</label>
+        <select id="direction">
+          <option value="east" selected>东向（震）</option><option value="south">南向（离）</option>
+          <option value="west">西向（兑）</option><option value="north">北向（坎）</option>
+          <option value="center">坐中宫</option>
+        </select><span class="bar"></span></div>
+      <div class="field"><label>地址（选填）</label><input id="address" placeholder="如：朝阳区xx小区"><span class="bar"></span></div>
+    </div>
+    <button class="btn block" id="calcBtn">分析布局</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">局</span>
+    <h2>布局建议</h2>
+    <div class="sub" id="r-sub"></div>
+    <div class="verdict" id="r-out"></div>
+    <div class="ai-note">玄学要点：门为气口宜通，厨为养命之源宜净，卧房宜静宜藏，明堂宜阔宜亮。路冲、反弓、尖角皆为凶形，宜以屏风、绿植化解。</div>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 风水详解</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'fengshui.html' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+  const DIR_NAMES = { east: '东向（震）', south: '南向（离）', west: '西向（兑）', north: '北向（坎）', center: '坐中宫' };
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    try {
+      const direction = document.getElementById('direction').value;
+      const r = Engine.run('fengshui', { direction, directionName: DIR_NAMES[direction], address: document.getElementById('address').value.trim() });
+      ctx = r.aiContext;
+      document.getElementById('r-sub').textContent = DIR_NAMES[direction] + (document.getElementById('address').value.trim() ? ' · ' + document.getElementById('address').value.trim() : '');
+      document.getElementById('r-out').innerHTML = r.text.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.show(document.getElementById('result'), true);
+      XT.show(document.getElementById('aiPanel'), true);
+      Memory.record('fengshui', { direction, directionName: DIR_NAMES[direction], address: document.getElementById('address').value.trim() });
+      XT.bump('calcs');
+      XT.saveHistory({ module: 'fengshui', title: '风水分析 ' + DIR_NAMES[direction], data: r.data });
+    } catch (e) { XT.msg(errBox, '分析出错：' + e.message, 'err'); }
+  });
+
+  document.getElementById('aiBtn').addEventListener('click', async () => {
+    const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
+    if (!ctx) { XT.msg(box, '请先分析布局', 'err'); return; }
+    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    XT.msg(box, '玄天感应中…（检索典籍 + 融合推演）', 'ok');
+    const btn = document.getElementById('aiBtn'); btn.disabled = true;
+    try {
+      const reply = await AIEngine.analyze({ query: '请为上述宅局给出详尽的布局建议与化解之法。', algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display = '';
+      out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.hideMsg(box);
+    } catch (e) { XT.msg(box, e.message, 'err'); }
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>

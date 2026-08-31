@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>玄天智算 · 进入玄境</title>
+<meta name="description" content="玄天智算 XuanTian AI · 东方玄学宇宙智能系统">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/><path d='M50 50 A23 23 0 0 1 50 27 A23 23 0 0 0 50 73 Z' fill='%23e8c874'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+<style>
+  .login-stage .tagline { margin-top: 40px; }
+  .hint { margin-top: 22px; font-size: 11.5px; color: var(--ink-3); letter-spacing: 0.12em; text-align: center; }
+  .hint code { color: var(--gold); }
+</style>
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+
+<div class="login-stage">
+  <div class="login-core">
+    <div class="taiji-el" data-size="178"></div>
+  </div>
+  <div class="tagline">XUAN TIAN · AI —— 东方玄学宇宙系统</div>
+
+  <form class="login-form" id="loginForm">
+    <div class="field">
+      <label>命 名</label>
+      <input type="text" id="username" name="username" autocomplete="username" placeholder="输入你的名称" required>
+      <span class="bar"></span>
+    </div>
+    <div class="field">
+      <label>印 信</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" placeholder="输入印信密钥" required>
+      <span class="bar"></span>
+    </div>
+    <div class="msg" id="errBox"></div>
+    <button class="btn" type="button" id="loginBtn" onclick="doLogin()">
+      <span>进入玄境</span>
+    </button>
+  </form>
+
+  <div class="foot">天垂象 · 见吉凶 · 圣人象之</div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/taiji.js"></script>
+<script>
+  async function doLogin() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value;
+    const err = document.getElementById('errBox');
+    const btn = document.getElementById('loginBtn');
+    if (!u || !p) { XT.msg(err, '请填写名称与印信', 'err'); return; }
+    btn.disabled = true; btn.innerHTML = '<span>正在感应…</span>';
+    XTAnim.burst(btn);
+    try {
+      const s = await XT.login(u, p);
+      if (s) {
+        XT.msg(err, '玄境已启 · 恭迎' + (s.displayName || u), 'ok');
+        setTimeout(() => location.href = 'index.html', 700);
+      } else {
+        XT.msg(err, '名称或印信有误，无法入鉴', 'err');
+        btn.disabled = false; btn.innerHTML = '<span>进入玄境</span>';
+      }
+    } catch (errX) {
+      XT.msg(err, '感应出错：' + errX.message, 'err');
+      btn.disabled = false; btn.innerHTML = '<span>进入玄境</span>';
+    }
+  }
+  if (XT.isLoggedIn()) location.href = 'index.html';
+  XTAnim.initCosmos('cosmos-canvas');
+</script>
+</body>
+</html>

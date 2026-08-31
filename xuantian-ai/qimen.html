@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>奇门遁甲 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+<style>
+  .qm { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+  .palace { padding: 10px; border-radius: 12px; background: rgba(20,26,48,.6); border: 1px solid var(--glass-border); min-height: 88px; }
+  .palace .pos { font-size: 10px; color: var(--ink-3); letter-spacing: .1em; }
+  .palace .door { font-size: 15px; color: var(--gold-bright); font-weight: 600; margin-top: 4px; }
+  .palace .star { font-size: 11px; color: var(--ink-2); margin-top: 3px; }
+  .palace .god { font-size: 10px; color: var(--cyan); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">遁</span>
+    <h2>奇门遁甲</h2>
+    <div class="sub">时家奇门 · 九宫盘局 · 八门九星八神</div>
+    <div class="row c4">
+      <div class="field"><label>年</label><input id="y" type="number" value="2026" min="1900" max="2100"><span class="bar"></span></div>
+      <div class="field"><label>月</label><input id="m" type="number" value="8" min="1" max="12"><span class="bar"></span></div>
+      <div class="field"><label>日</label><input id="d" type="number" value="25" min="1" max="31"><span class="bar"></span></div>
+      <div class="field"><label>时</label><input id="h" type="number" value="18" min="0" max="23"><span class="bar"></span></div>
+    </div>
+    <div class="field"><label>所问之事</label><input id="question" placeholder="默念所问"><span class="bar"></span></div>
+    <button class="btn block" id="calcBtn">排盘布局</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">盘</span>
+    <h2>九宫盘局</h2>
+    <div class="sub" id="r-sub"></div>
+    <div class="qm" id="palaces"></div>
+    <div class="verdict" id="r-summary"></div>
+    <details><summary>完整盘局数据</summary><pre class="raw" id="r-json"></pre></details>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 盘局详解</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'qimen.html' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    try {
+      const y = +document.getElementById('y').value, m = +document.getElementById('m').value, d = +document.getElementById('d').value, h = +document.getElementById('h').value;
+      const r = Engine.run('qimen', { year: y, month: m, day: d, hour: h });
+      ctx = r.aiContext;
+      document.getElementById('r-sub').textContent = y + '年' + m + '月' + d + '日 ' + h + '时' + (r.data.ganzhi ? ' · ' + r.data.ganzhi : '');
+      const palaces = r.data.palaces || r.data.pan || [];
+      const box = document.getElementById('palaces');
+      if (palaces.length) {
+        box.innerHTML = palaces.map(p => `<div class="palace"><div class="pos">${XT.esc(p.position || '')}</div><div class="door">${XT.esc(p.door || p.men || '')}</div><div class="star">${XT.esc([p.star, p.god].filter(Boolean).join(' · '))}</div><div class="god">${XT.esc([p.shen, p.yi, p.bing].filter(Boolean).join(' '))}</div></div>`).join('');
+      } else {
+        box.innerHTML = '<div class="muted" style="grid-column:span 3;text-align:center;padding:20px;">盘局数据解析中，详见下方完整数据</div>';
+      }
+      document.getElementById('r-summary').innerHTML = XT.esc(r.data.summary || r.data.conclusion || '') ? `<b>局断。</b>${XT.esc(r.data.summary || r.data.conclusion || '')}` : '';
+      document.getElementById('r-json').textContent = JSON.stringify(r.data, null, 2);
+      XT.show(document.getElementById('result'), true);
+      XT.show(document.getElementById('aiPanel'), true);
+      Memory.record('qimen', { year: y, month: m, day: d, hour: h });
+      XT.bump('calcs');
+      XT.saveHistory({ module: 'qimen', title: '奇门遁甲 ' + y + '年' + m + '月' + d + '日' + h + '时', data: r.data });
+    } catch (e) { XT.msg(errBox, '排盘出错：' + e.message, 'err'); }
+  });
+
+  document.getElementById('aiBtn').addEventListener('click', async () => {
+    const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
+    if (!ctx) { XT.msg(box, '请先排盘', 'err'); return; }
+    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    XT.msg(box, '玄天感应中…（检索典籍 + 融合推演）', 'ok');
+    const btn = document.getElementById('aiBtn'); btn.disabled = true;
+    try {
+      const q = document.getElementById('question').value.trim() || '请分析此盘局';
+      const reply = await AIEngine.analyze({ query: q, algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display = '';
+      out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.hideMsg(box);
+    } catch (e) { XT.msg(box, e.message, 'err'); }
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>

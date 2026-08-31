@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>面相分析 · 玄天智算</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%2304050a' stroke='%23e8c874' stroke-width='3'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="cosmos"><canvas id="cosmos-canvas"></canvas></div>
+<div class="page">
+  <div class="topbar" id="topbar"></div>
+  <a class="backlink" href="index.html">← 返回星盘</a>
+
+  <div class="panel">
+    <span class="corner">相</span>
+    <h2>面相分析</h2>
+    <div class="sub">三停五岳 · 气色神采（AI 视觉规划中）</div>
+    <div class="field"><label>照片（规划中，即将支持上传）</label><input id="photo" type="file" accept="image/*" disabled><span class="bar"></span></div>
+    <button class="btn block" id="calcBtn">开始分析</button>
+    <div class="msg" id="errBox"></div>
+  </div>
+
+  <div class="panel result" id="result">
+    <span class="corner">象</span>
+    <h2>推演结果</h2>
+    <div class="sub" id="r-sub"></div>
+    <div class="verdict" id="r-out"></div>
+  </div>
+
+  <div class="panel result" id="aiPanel">
+    <span class="corner">智</span>
+    <h2>玄天深度解读</h2>
+    <div class="sub">AI 融合典籍知识库 · 深度解析</div>
+    <button class="btn" id="aiBtn">唤起玄天 AI 解读</button>
+    <div class="msg" id="aiBox"></div>
+    <div class="ai-note" id="aiOut" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/starfield.js"></script>
+<script src="js/app.js"></script>
+<script src="js/algo.js"></script>
+<script src="js/engine-functions.js"></script>
+<script src="js/knowledge.js"></script>
+<script src="js/ai-engine.js"></script>
+<script>
+  XTApp.init({ active: 'mianxiang.html' });
+  const errBox = document.getElementById('errBox');
+  let ctx = '';
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    XT.hideMsg(errBox);
+    try {
+      const r = Engine.run('mianxiang', {});
+      document.getElementById('r-sub').textContent = '面相分析';
+      document.getElementById('r-out').innerHTML = r.text.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.show(document.getElementById('result'), true);
+      XT.bump('calcs');
+    } catch (e) { XT.msg(errBox, '分析出错：' + e.message, 'err'); }
+  });
+</script>
+</body>
+</html>
