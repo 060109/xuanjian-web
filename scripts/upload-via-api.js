@@ -35,10 +35,13 @@ async function main() {
   console.log('本地 HEAD:', head)
   const message = git('log', '-1', '--format=%B', 'HEAD').split('\n').filter(Boolean)[0] || 'deploy via API'
 
-  // 1.5 空仓库初始化：先用 Contents API 创建 README 解锁（git data API 对空仓库返回 409）
+  // 1.5 获取当前 main HEAD 的 commit SHA 作为 parent（保证 commit 链连续，让 Cloudflare Pages webhook 触发）
+  // 【关键修复】之前 parentSha 默认为 null，导致 commit 是 orphan；CF Pages webhook 对 orphan commit 无效，导致后续部署失效。
   let parentSha = null
   try {
-    await api('GET', `/git/ref/heads/${BRANCH}`)
+    const ref = await api('GET', `/git/ref/heads/${BRANCH}`)
+    parentSha = ref.object?.sha || null
+    console.log('  current main HEAD:', parentSha)
   } catch {
     console.log('仓库为空，用 Contents API 创建初始 README 解锁…')
     const initRes = await fetch(API + '/contents/README.md', {

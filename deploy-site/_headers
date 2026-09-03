@@ -4,8 +4,6 @@
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  # 根路径走短缓存（每次校验上游）—— 保证新部署能立即生效
-  Cache-Control: public, max-age=0, must-revalidate
 
 # API 跨域
 /api/*
@@ -13,10 +11,6 @@
   Access-Control-Allow-Methods: GET,POST,OPTIONS
   Access-Control-Allow-Headers: Content-Type, Authorization
 
-# HTML 走 no-cache（最严保险）
-/*.html
-  Cache-Control: public, max-age=0, must-revalidate
-
-# 静态资源永久缓存（文件名已带 hash，可安全 immutable）
+# 静态资源缓存
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
