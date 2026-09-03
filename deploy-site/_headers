@@ -1,0 +1,16 @@
+# Cloudflare Pages 全局头
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# API 跨域
+/api/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET,POST,OPTIONS
+  Access-Control-Allow-Headers: Content-Type, Authorization
+
+# 静态资源缓存
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

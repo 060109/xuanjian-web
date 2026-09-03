@@ -128,5 +128,28 @@
     return call(messages);
   }
 
-  window.AIEngine = { PROVIDERS, getCfg, hasModel, call, analyze, chat, askKnowledge };
+  /* —— 内置解读兜底（无需大模型）：结合算法推演 + 典籍检索 —— */
+  function fallback({ result, query, module }) {
+    const lines = [];
+    lines.push('【玄天内置详解】');
+    lines.push('基于玄学算法推演与典籍知识库生成，无需依赖大模型。');
+    if (result && result.text) {
+      lines.push('────────────────');
+      lines.push(result.text);
+    }
+    if (query) {
+      lines.push('────────────────');
+      lines.push('【你问】' + query);
+      lines.push('【回答】' + (function () {
+        const q = String(query);
+        if (/(什么|如何|怎么|为什么|吉凶|好坏|行不行|可以|建议)/.test(q)) {
+          return '可结合上方推演自行参详；如需更深入解读，请前往「设置」配置 AI 大模型。';
+        }
+        return '详看上节推演。如需结合天地时运深度剖析，请前往「设置」配置 AI 大模型。';
+      })());
+    }
+    return lines.join('\n');
+  }
+
+  window.AIEngine = { PROVIDERS, getCfg, hasModel, call, analyze, chat, askKnowledge, fallback };
 })();

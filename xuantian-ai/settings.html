@@ -103,7 +103,18 @@
       const reply = await AIEngine.chat([{ role: 'user', content: '请回复：玄天引擎连接正常' }]);
       XT.msg(errBox, '连接成功：' + reply.slice(0, 60), 'ok');
     } catch (e) {
-      XT.msg(errBox, '连接失败：' + e.message, 'err');
+      let hint = '';
+      const m = e.message || '';
+      if (m.includes('404') || m.includes('Invalid URL') || m.includes('404 Not Found')) {
+        hint = '\n\n可能原因：API 地址路径不完整（OpenAI 兼容服务通常需含 /v1 或 /v1/chat/completions），或服务商 Host 拼写有误。';
+      } else if (m.includes('401') || m.includes('Unauthorized')) {
+        hint = '\n\nAPI Key 无效或不匹配该服务商，请检查 Key 是否正确。';
+      } else if (m.includes('429')) {
+        hint = '\n\n触发限流，稍后再试。';
+      } else if (m.includes('CORS') || m.includes('Failed to fetch')) {
+        hint = '\n\n浏览器 CORS 限制：当前服务商可能不允许浏览器直接调用，或需自建反代。';
+      }
+      XT.msg(errBox, '连接失败：' + m + hint, 'err');
     }
     document.getElementById('testBtn').disabled = false;
     setTimeout(() => XT.hideMsg(errBox), 4000);

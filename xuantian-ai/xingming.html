@@ -82,12 +82,30 @@
 
   document.getElementById('aiBtn').addEventListener('click', async () => {
     const box = document.getElementById('aiBox'), out = document.getElementById('aiOut');
-    if (!ctx) { XT.msg(box, '请先分析数理', 'err'); return; }
-    if (!AIEngine.hasModel()) { XT.msg(box, '尚未配置 AI 模型，请先到「设置」填写 API Key', 'err'); return; }
+    if (!ctx) { XT.msg(box, '请先完成推演', 'err'); return; }
+    const query = document.getElementById('question') ? (document.getElementById('question').value.trim() || '请为以上推演做深度解读') : '请为以上推演做深度解读';
+    const btn = document.getElementById('aiBtn');
+    if (!AIEngine.hasModel()) {
+      XT.msg(box, '尚未配置 AI 模型，已启用玄天内置详解（基于算法 + 典籍）', 'ok');
+      out.style.display = '';
+      out.innerHTML = AIEngine.fallback({ result: { text: ctx }, query: query }).split('\n').map(l => XT.esc(l)).join('<br>');
+      return;
+    }
+    btn.disabled = true;
     XT.msg(box, '玄天感应中…（检索典籍 + 融合推演）', 'ok');
-    const btn = document.getElementById('aiBtn'); btn.disabled = true;
     try {
-      const reply = await AIEngine.analyze({ query: '请结合姓名学典籍，对「' + document.getElementById('name').value.trim() + '」做深度解析与改名建议。', algorithm: ctx, docs: await Knowledge.loadAll() });
+      const reply = await AIEngine.analyze({ query: query, algorithm: ctx, docs: await Knowledge.loadAll() });
+      out.style.display = '';
+      out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
+      XT.hideMsg(box);
+    } catch (err) {
+      XT.msg(box, 'AI 调用失败，已自动启用玄天内置详解：' + err.message.slice(0, 80), 'err');
+      out.style.display = '';
+      out.innerHTML = AIEngine.fallback({ result: { text: ctx }, query: query }).split('\n').map(l => XT.esc(l)).join('<br>');
+    }
+    btn.disabled = false;
+  });
+
       out.style.display = '';
       out.innerHTML = reply.split('\n').map(l => XT.esc(l)).join('<br>');
       XT.hideMsg(box);
